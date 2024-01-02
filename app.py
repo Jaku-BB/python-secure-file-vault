@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from hasher import get_hashed_file_secret, verify_hashed_file_secret
 
 app = Flask(__name__)
 
@@ -29,6 +30,8 @@ def encrypt():
 
     file = request.files['file']
     file_secret = request.form['file_secret']
+
+    hashed_file_secret = get_hashed_file_secret(file_secret)
 
     return jsonify({'result': 'success'}), 200
 
