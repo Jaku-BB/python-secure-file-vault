@@ -40,3 +40,15 @@ class Vault:
             file.write(encrypted_file)
 
         return encrypted_file_name
+
+    def decrypt_and_get_path(self, file_name):
+        try:
+            with open(f'{VAULT_PATH}/{file_name}', 'rb') as file:
+                decrypted_file = self.fernet.decrypt(file.read())
+        except FileNotFoundError:
+            return False
+
+        with open(f'{TEMPORARY_VAULT_PATH}/{file_name}', 'wb') as file:
+            file.write(decrypted_file)
+
+        return f'{TEMPORARY_VAULT_PATH}/{file_name}'

@@ -49,6 +49,11 @@ def decrypt():
     file_name = request.form['file_name']
     file_secret = request.form['file_secret']
 
+    decrypted_file_path = vault.decrypt_and_get_path(file_name)
+
+    if decrypted_file_path is False:
+        return jsonify({'result': 'error', 'errors': [{'field': 'file_name', 'message': 'File not found!'}]}), 404
+
     return jsonify({'result': 'success'}), 200
 
 
