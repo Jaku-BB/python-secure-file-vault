@@ -34,7 +34,7 @@ class Vault:
 
     def encrypt_and_save_file(self, file):
         encrypted_file = self.fernet.encrypt(file.read())
-        encrypted_file_name = uuid4()
+        encrypted_file_name = str(uuid4())
 
         with open(f'{VAULT_PATH}/{encrypted_file_name}', 'wb') as file:
             file.write(encrypted_file)
