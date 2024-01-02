@@ -1,18 +1,9 @@
 from flask import Flask, request, jsonify
 from hasher import get_hashed_file_secret, verify_hashed_file_secret
-from dotenv import load_dotenv
-from os import getenv
+from vault import Vault, initialize_vault_directory
 
-load_dotenv()
 app = Flask(__name__)
-
-
-def validate_environment():
-    environment_variables = ['ENCRYPTION_KEY']
-
-    for variable in environment_variables:
-        if getenv(variable) is None:
-            raise Exception(f'{variable} is not set!')
+vault = Vault()
 
 
 def validate_request_data(route):
@@ -43,8 +34,9 @@ def encrypt():
     file_secret = request.form['file_secret']
 
     hashed_file_secret = get_hashed_file_secret(file_secret)
+    encrypted_file_name = vault.encrypt_and_save_file(file)
 
-    return jsonify({'result': 'success'}), 200
+    return jsonify({'result': 'success', 'fileName': encrypted_file_name}), 200
 
 
 @app.post('/decrypt')
@@ -61,5 +53,5 @@ def decrypt():
 
 
 if __name__ == '__main__':
-    validate_environment()
+    initialize_vault_directory()
     app.run(debug=True)
