@@ -1,7 +1,18 @@
 from flask import Flask, request, jsonify
 from hasher import get_hashed_file_secret, verify_hashed_file_secret
+from dotenv import load_dotenv
+from os import getenv
 
+load_dotenv()
 app = Flask(__name__)
+
+
+def validate_environment():
+    environment_variables = ['ENCRYPTION_KEY']
+
+    for variable in environment_variables:
+        if getenv(variable) is None:
+            raise Exception(f'{variable} is not set!')
 
 
 def validate_request_data(route):
@@ -50,4 +61,5 @@ def decrypt():
 
 
 if __name__ == '__main__':
+    validate_environment()
     app.run(debug=True)
