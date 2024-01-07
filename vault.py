@@ -2,9 +2,9 @@ from os import path, mkdir
 from cryptography.fernet import Fernet
 from uuid import uuid4
 
-VAULT_PATH = 'vault'
-TEMPORARY_VAULT_PATH = 'vault-temporary'
-ENCRYPTION_KEY_PATH = 'encryption-key.key'
+VAULT_PATH = 'instance/vault'
+TEMPORARY_VAULT_PATH = 'instance/vault-temporary'
+ENCRYPTION_KEY_PATH = 'instance/encryption-key.key'
 
 
 def get_or_generate_encryption_key():

@@ -1,12 +1,20 @@
 from flask import Flask, request, jsonify, send_file
+from flask_sqlalchemy import SQLAlchemy
 from hasher import get_hashed_file_secret, verify_hashed_file_secret
 from vault import Vault, initialize_vault_directory
-from sqlite3 import connect
-
-DATABASE_PATH = 'file-vault-data.db'
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///file-vault-data.db'
+
+database = SQLAlchemy(app)
 vault = Vault()
+
+
+class FileVaultMetaData(database.Model):
+    id = database.Column(database.Integer, primary_key=True)
+    file_name = database.Column(database.String(255), nullable=False)
+    original_file_name = database.Column(database.String(255), nullable=False)
+    file_secret = database.Column(database.String(255), nullable=False)
 
 
 def validate_request_data(route):
@@ -39,12 +47,11 @@ def encrypt():
     hashed_file_secret = get_hashed_file_secret(file_secret)
     encrypted_file_name = vault.encrypt_and_save_file(file)
 
-    connection = connect(DATABASE_PATH)
-    connection.execute('INSERT INTO file_vault (file_name, original_file_name, file_secret) VALUES (?, ?, ?)',
-                       (encrypted_file_name, file.filename, hashed_file_secret))
+    file_vault_entry = FileVaultMetaData(file_name=encrypted_file_name, original_file_name=file.filename,
+                                         file_secret=hashed_file_secret)
 
-    connection.commit()
-    connection.close()
+    database.session.add(file_vault_entry)
+    database.session.commit()
 
     return jsonify({'result': 'success', 'fileName': encrypted_file_name}), 200
 
@@ -59,16 +66,12 @@ def decrypt():
     file_name = request.form['file_name']
     file_secret = request.form['file_secret']
 
-    connection = connect(DATABASE_PATH)
-    result = connection.execute('SELECT original_file_name, file_secret FROM file_vault WHERE file_name = ?',
-                                (file_name,)).fetchone()
+    file_vault_entry = FileVaultMetaData.query.filter_by(file_name=file_name).first()
 
-    connection.close()
-
-    if result is None:
+    if file_vault_entry is None:
         return jsonify({'result': 'error', 'errors': [{'field': 'file_name', 'message': 'File not found!'}]}), 404
 
-    hashed_file_secret = result[1]
+    hashed_file_secret = file_vault_entry.file_secret
 
     if not verify_hashed_file_secret(hashed_file_secret, file_secret):
         return jsonify({'result': 'error', 'errors':
@@ -79,16 +82,13 @@ def decrypt():
     if decrypted_file_path is False:
         return jsonify({'result': 'error', 'errors': [{'field': 'file_name', 'message': 'File not found!'}]}), 404
 
-    return send_file(decrypted_file_path, as_attachment=True, download_name=result[0])
+    return send_file(decrypted_file_path, as_attachment=True, download_name=file_vault_entry.original_file_name)
 
 
 if __name__ == '__main__':
     initialize_vault_directory()
 
-    connection = connect(DATABASE_PATH)
-    connection.execute('CREATE TABLE IF NOT EXISTS file_vault (id INTEGER PRIMARY KEY, file_name TEXT, '
-                       'original_file_name TEXT, file_secret TEXT)')
-
-    connection.close()
+    with app.app_context():
+        database.create_all()
 
     app.run(debug=True)
