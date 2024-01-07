@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from hasher import get_hashed_file_secret, verify_hashed_file_secret
-from vault import Vault, initialize_vault_directory
+from vault import Vault, initialize_vault_directory, get_file
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///file-vault-data.db'
@@ -82,7 +82,9 @@ def decrypt():
     if decrypted_file_path is False:
         return jsonify({'result': 'error', 'errors': [{'field': 'file_name', 'message': 'File not found!'}]}), 404
 
-    return send_file(decrypted_file_path, as_attachment=True, download_name=file_vault_entry.original_file_name)
+    file = get_file(decrypted_file_path)
+
+    return send_file(file, as_attachment=True, download_name=file_vault_entry.original_file_name)
 
 
 if __name__ == '__main__':

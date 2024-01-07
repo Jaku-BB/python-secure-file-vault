@@ -1,4 +1,5 @@
-from os import path, mkdir
+from os import path, mkdir, remove
+from io import BytesIO
 from cryptography.fernet import Fernet
 from uuid import uuid4
 
@@ -26,6 +27,18 @@ def initialize_vault_directory():
 
     if not path.exists(TEMPORARY_VAULT_PATH):
         mkdir(TEMPORARY_VAULT_PATH)
+
+
+def get_file(file_path):
+    target_file = BytesIO()
+
+    with open(file_path, 'rb') as file:
+        target_file.write(file.read())
+
+    target_file.seek(0)
+    remove(file_path)
+
+    return target_file
 
 
 class Vault:
