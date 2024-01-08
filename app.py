@@ -1,12 +1,14 @@
 from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
-from hasher import get_hashed_file_secret, verify_hashed_file_secret
+from authorization import Authorization
 from vault import Vault, initialize_vault_directory, get_file
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///file-vault-data.db'
 
 database = SQLAlchemy(app)
+
+authorization = Authorization()
 vault = Vault()
 
 
@@ -44,7 +46,7 @@ def encrypt():
     file = request.files['file']
     file_secret = request.form['file_secret']
 
-    hashed_file_secret = get_hashed_file_secret(file_secret)
+    hashed_file_secret = authorization.generate_hash(file_secret)
     encrypted_file_name = vault.encrypt_and_save_file(file)
 
     file_vault_entry = FileVaultMetaData(file_name=encrypted_file_name, original_file_name=file.filename,
@@ -73,9 +75,9 @@ def decrypt():
 
     hashed_file_secret = file_vault_entry.file_secret
 
-    if not verify_hashed_file_secret(hashed_file_secret, file_secret):
+    if not authorization.verify_hash(hashed_file_secret, file_secret):
         return jsonify({'result': 'error', 'errors':
-                        [{'field': 'file_secret', 'message': 'File secret is incorrect!'}]}), 403
+            [{'field': 'file_secret', 'message': 'File secret is incorrect!'}]}), 403
 
     decrypted_file_path = vault.decrypt_and_get_path(file_name)
 
